@@ -1,0 +1,6 @@
+Baysian HMM
+forward filtering and Backward sampling
+
+all routines are written in cpplapack_plus
+
+hmm.cpp contains sample program
