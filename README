@@ -1,6 +1,28 @@
 Baysian HMM
-forward filtering and Backward sampling
+/forward filtering and Backward sampling
+/mlhmm means hmm usigng Baum-Welch algorithm
+/sticky HDP-HMM
 
-all routines are written in cpplapack_plus
+nbhmm.h nbhmm.cpp 
+ are core code
 
-hmm.cpp contains sample program
+you should include nbhmm.h
+nbhmm.h includes cpplapack_plus.h
+
+This program requires 
+ randlib and cpplapack  with cpplapack_plus
+  please refer cpplapack_plus
+
+
+
+g++ -c hogehoge.cpp nbhmm.cpp
+g++ -c cpplapack_plus.cpp
+g++ hogehoge.o nbhmm.o.o cpplapack_plus.o -llapack -lrandlibc -lblas
+
+
+<sample codes>
+sample_hmm.cpp // forward filtering backward sampling
+sample_mlhmm.cpp // Baum-Welch algorithm
+sample_shdphmm.cpp // sticky HDP-HMM using blocked gibbs sampler described as  algorithm 3 in Fox's original paper
+
+
