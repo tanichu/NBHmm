@@ -1,14 +1,14 @@
-#include "cpplapack_plus.h"
+#include "nbhmm.h"
 
+int main(int argc, char *argv[]){
+	srand(atoi(argv[1]));
+	//scatter();
 
-int main(){
-	
-	scatter();
-
+	int big_sates = 6;
 	int states = 3, dim=2;
 	NBHmm H,Hest;	
 	H.resize(states,dim);	
-	Hest.resize(states,dim);
+	Hest.resize(big_sates/*states*/,dim);
 	
 	H.read_TM("tm.sample.dat");
 	H.read_Mu("mu.sample.dat");
@@ -40,21 +40,23 @@ int main(){
 	dcovector likely_log(TRIAL);
 	
 	for (int i=0; i<TRIAL; i++) {
-		cout << "FF" <<endl;
+		//cout << "FF" <<endl;
 		F = ForwardFiltering(Hest,Y);
-		cout << "BS" <<endl;		
-		est = BackwardSampling(H,F);	
-		cout << "Updating" <<endl;
+		//cout << "BS" <<endl;		
+		est = BackwardSampling(Hest,F);	
+		//cout << "Updating" <<endl;
 		Hest.Update(Y,est);
 		
-		cout << F(F.m-1,Hest.G.size())<<endl;
-		likely_log(i)=F(F.m-1,Hest.G.size());
+		cout << sum_to_dro(F)(F.n-1)<<endl;
+		likely_log(i)=sum_to_dro(F)(F.n-1);
+		
+		cout << TransitionCount(est,big_sates)<<endl;
+		//cout << Hest.TM() <<endl;
+		//getchar();
 	}
 	likely_log.write("lh.transition.txt");
 	dco(est).write("estimated.learned.txt");
-	
-	//cout << Hest.TM() << endl;
-	
+		
 	
 	for (int i=0; i<states; i++) {
 		cout << "state: "<< i << endl;
@@ -62,8 +64,6 @@ int main(){
 		cout << Hest.G[i].Sig;
 		cout << Hest.M[i].Mu;
 	}
-
-	
 	
 	getchar();
 	
