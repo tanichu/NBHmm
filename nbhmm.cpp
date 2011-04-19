@@ -289,7 +289,7 @@ void NBShdpHmm::Update(dgematrix Y,vector<int> label){
 		}
 	}
 	
-	cout << "beta_prior" << endl;
+	//cout << "beta_prior" << endl;
 	
 	dcovector beta_prior(states);
 	dcovector m_sum = sum_to_dco(m_);
