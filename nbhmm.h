@@ -53,7 +53,7 @@ public:
 	//	dgematrix TM();// shows transition matrix
 	
 	
-	void Update(dgematrix Y,vector<int> label);
+	void Update_shdp(dgematrix Y,vector<int> label);
 	
 	//use	void read_Mu(const char *filename);
 	//use	void read_diag_Sig(const char *filename);
@@ -69,7 +69,7 @@ public:
 };
 
 
-class MLHmm : public NBHmm {
+class MLHmm : public NBShdpHmm{
 public:
 	//vector<NBGauss> G;//Gaussian distribution
 	//vector<NBMulti> M;// Transition multinomial distribution
@@ -78,7 +78,7 @@ public:
 	//dgematrix TM_buffer; // used to buffering TM for reducing repetedly estimation of TM.
 	//dgematrix TM();// shows transition matrix
 	
-	void Update(dgematrix Y,dgematrix F/*Forward message*/, dgematrix B/*Backword message*/);
+	void Update_bw(dgematrix Y,dgematrix F/*Forward message*/, dgematrix B/*Backword message*/);
 	
 	//void read_Mu(const char *filename);
 	//void read_diag_Sig(const char *filename);
@@ -87,6 +87,5 @@ public:
 };
 
 
-
-
+#define HMMclass NBShdpHmm 
 

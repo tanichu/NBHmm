@@ -253,7 +253,7 @@ double NBShdpHmm::hp_rho(){
 }
 
 
-void NBShdpHmm::Update(dgematrix Y,vector<int> label){
+void NBShdpHmm::Update_shdp(dgematrix Y,vector<int> label){
 	int states = M.size();
 	
 	//Monitoring sampled Transition Count
@@ -325,7 +325,7 @@ void NBShdpHmm::Update(dgematrix Y,vector<int> label){
 }
 
 
-void MLHmm::Update(dgematrix Y,dgematrix F, dgematrix B){
+void MLHmm::Update_bw(dgematrix Y,dgematrix F, dgematrix B){
 	//In Baum-Welch algorithm Forward and Backward filters
 	// have to share the same FF'sscaling parameter 
 	TM();

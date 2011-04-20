@@ -38,7 +38,7 @@ int main(){
 	dgematrix B = BackwardFiltering(H,Y);
 	B.write("bf.txt");
 	
-	getchar();
+	//getchar();
 	
 	//Estimation of hmm
 	int TRIAL = 10;
@@ -79,7 +79,7 @@ int main(){
 	*/	
 		
 		//cout << "Updating" <<endl;
-		Hest.Update(Y,F,B);
+		Hest.Update_bw(Y,F,B);
 		
 		//cout << F(F.m-1,Hest.G.size())<<endl;
 		//likely_log(i)=F(F.m-1,Hest.G.size());
@@ -89,7 +89,7 @@ int main(){
 		//cout << sum_to_dro(Hest.TM_buffer);
 		//cout << Hest.TM_buffer;
 		
-		getchar();
+		//getchar();
 	}
 	likely_log.write("lh.transition.txt");
 	//dco(est).write("estimated.learned.txt");

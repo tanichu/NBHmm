@@ -55,7 +55,7 @@ int main(int argc, char *argv[]){
 	//	cout << "FS" <<endl;		
 		est = ForwardSampling(Hest,B,Y);	
 	//	cout << "Updating" <<endl;
-		Hest.Update(Y,est);
+		Hest.Update_shdp(Y,est);
 		
 		cout << B(0,Hest.G.size())<<endl;
 		likely_log(i)=B(0,Hest.G.size());
