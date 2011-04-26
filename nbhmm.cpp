@@ -81,6 +81,8 @@ dgematrix ForwardFiltering(NBHmm H, dgematrix X){
 		current(i) = H.G[i].Probability(t(x));
 	}
 	double a = sum(current);
+	if(a<pow(10.0,-20)){a<pow(10.0,-20);}
+	
 	current = (1.0/a)*current;
 	log_c_ = log10(1.0/a);//similar to hamahata
 	
@@ -358,7 +360,6 @@ void MLHmm::Update_bw(dgematrix Y,dgematrix F, dgematrix B){
 	}
 	
 	cout <<"before for loop" <<endl;
-	dgematrix trans(3,3);
 	
 	vector<dgematrix> eta;
 	eta.resize(Y.m);
@@ -405,6 +406,10 @@ void MLHmm::Update_bw(dgematrix Y,dgematrix F, dgematrix B){
 				up += eta[t](i,j);
 				down += gamma(t,i);
 			}
+			/*APPROXIMATION!!*/
+			//heuristically avoiding ZERO division 
+			down += DIR_MIN;
+			///
 			trans_(j,i) = up/down;	
 			M[i].Mu(j) = up/down;
 		}
@@ -424,7 +429,7 @@ void MLHmm::Update_bw(dgematrix Y,dgematrix F, dgematrix B){
 	}
 	cout << "before " << endl;
 	
-	
+	printf("Mu estimation\n");
 	// Mu estimation
 	for (int i=0; i<states; i++) {
 		dcovector temp(Y.n);temp.zero();
@@ -434,8 +439,13 @@ void MLHmm::Update_bw(dgematrix Y,dgematrix F, dgematrix B){
 			temp = temp + gamma(t,i)*CPPL::t(rovec_read(Y,t));
 		}
 		G[i].Mu = (1.0/probcount)*temp;
+		if (probcount==0) {
+			cout << "probcount zero! stop! << enter";
+			getchar();
+		}
 	}
 	
+	printf("Sig estimation\n");
 	// Sig estimation
 	for (int i=0; i<states; i++) {
 		dgematrix temp(Y.n,Y.n);temp.zero();
@@ -447,10 +457,15 @@ void MLHmm::Update_bw(dgematrix Y,dgematrix F, dgematrix B){
 			tempro = tempro - CPPL::t(G[i].Mu);
 			temp = temp + gamma(t,i)*(CPPL::t(tempro)* tempro) ;
 		}
-		G[i].Sig = (1.0/(probcount+ G[i].hp_n))*(temp + G[i].hp_A);
+		dgematrix sI;
+		sI = G[i].Sig;
+		sI.identity();
+		//G[i].Sig = (1.0/(probcount+ G[i].hp_n))*(temp + G[i].hp_A);
+		G[i].Sig = (1.0/probcount)*(temp /*+ sI*/);
+		
 	}
 	
-	
+	printf("Update log show\n");
 	// Update log show
 	for (int i=0; i<states; i++) {
 		cout << "state: "<< i << endl;
@@ -480,4 +495,138 @@ vector<int> BackwardSampling(NBHmm H,dgematrix F){
 	
 	return est;
 }
+/*
+void Update_bw(dgematrix Y){
+	dgematrix A(
+	
+	
+	//alphaの計算
+	
+	
+	//betaの計算
+	
+	cout <<"before for loop" <<endl;
+	
+	vector<dgematrix> eta;
+	eta.resize(Y.m);
+	for (int t=0; t<Y.m;t++) {
+		eta[t].resize(states,states);
+	}
+	for (int i=0; i<states; i++) {
+		for (int j=0; j<states; j++) {
+			dcovector upvec(states); upvec.zero();// = 0;
+			double up = 0;
+			double down = 0;
+			for (int t=0; t<Y.m-1; t++) {
+				
+				eta[t](i,j)= F(t,i)*TM_buffer(j,i)*G[j].Probability(CPPL::t(rovec_read(Y,t+1)))*B_(t+1,j);
+			}
+		}		
+	}
+	
+	//Calculating Pr(O|¥lambda)
+	double Pr = 0;
+	for (int i=0; i<states; i++) {
+		for(int j=0; j<states; j++){
+			Pr += eta[1](i,j);
+		}
+	}
+	for (int t=0; t<Y.m; t++) {
+		eta[t]= (1.0/Pr)*eta[t];
+	}
+	dgematrix gamma(Y.m,states);gamma.zero();
+	for (int t=0; t<Y.m; t++) {
+		for(int i=0;i<states;i++){
+			for (int j=0; j<states; j++) {
+				gamma(t,i) += eta[t](i,j);
+			}
+			
+		}
+	}
+	
+	dgematrix trans_(states,states);
+	for(int i=0;i<states;i++){
+		for (int j=0; j<states; j++) {
+			double up=0;double down=0;
+			for (int t=0; t<Y.m; t++) {
+				up += eta[t](i,j);
+				down += gamma(t,i);
+			}
+			//APPROXIMATION!!/
+			//heuristically avoiding ZERO division 
+			down += DIR_MIN;
+			///
+			trans_(j,i) = up/down;	
+			M[i].Mu(j) = up/down;
+		}
+	}
+	
+	
+	//	cout << "est transition" << endl;
+	//	cout << trans_ << endl;
+	//	cout << " transition " << (TM());
+	//	cout << "sum transition " << sum_to_dro(TM());
+	
+	for (int i=0; i<states; i++) {
+		cout << "state: "<< i << endl;
+		cout << CPPL::t(G[i].Mu);
+		cout << G[i].Sig;
+		cout << M[i].Mu;
+	}
+	cout << "before " << endl;
+	
+	printf("Mu estimation\n");
+	// Mu estimation
+	for (int i=0; i<states; i++) {
+		dcovector temp(Y.n);temp.zero();
+		double probcount = 0;
+		for(int t=0;t<Y.m;t++){
+			probcount += gamma(t,i);
+			temp = temp + gamma(t,i)*CPPL::t(rovec_read(Y,t));
+		}
+		G[i].Mu = (1.0/probcount)*temp;
+		if (probcount==0) {
+			cout << "probcount zero! stop! << enter";
+			getchar();
+		}
+	}
+	
+	printf("Sig estimation\n");
+	// Sig estimation
+	for (int i=0; i<states; i++) {
+		dgematrix temp(Y.n,Y.n);temp.zero();
+		double probcount = 0;
+		for(int t=0;t<Y.m;t++){
+			
+			probcount += gamma(t,i);
+			drovector tempro = rovec_read(Y,t);
+			tempro = tempro - CPPL::t(G[i].Mu);
+			temp = temp + gamma(t,i)*(CPPL::t(tempro)* tempro) ;
+		}
+		dgematrix sI;
+		sI = G[i].Sig;
+		sI.identity();
+		//G[i].Sig = (1.0/(probcount+ G[i].hp_n))*(temp + G[i].hp_A);
+		G[i].Sig = (1.0/probcount)*(temp);
+		
+	}
+	
+	printf("Update log show\n");
+	// Update log show
+	for (int i=0; i<states; i++) {
+		cout << "state: "<< i << endl;
+		cout << CPPL::t(G[i].Mu);
+		cout << G[i].Sig;
+	}
+	
+	cout << " transition " << endl << (TM());
+	
+	
+	
+	
+}
+
+*/
+
+
 

@@ -60,7 +60,6 @@ public:
 	//use	void read_TM(const char *filename);// read TM from file
 	
 	
-	
 	//hyper parameter
 	double hp_kappa;
 	double hp_rho();
@@ -79,7 +78,7 @@ public:
 	//dgematrix TM();// shows transition matrix
 	
 	void Update_bw(dgematrix Y,dgematrix F/*Forward message*/, dgematrix B/*Backword message*/);
-	
+	//void Update_bw(dgematrix Y);
 	//void read_Mu(const char *filename);
 	//void read_diag_Sig(const char *filename);
 	
@@ -87,5 +86,5 @@ public:
 };
 
 
-#define HMMclass NBShdpHmm 
+#define HMMclass MLHmm 
 

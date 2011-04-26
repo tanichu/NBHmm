@@ -1,0 +1,6 @@
+*~
+#*#
+*.o
+*.out
+archive/*
+*.txt

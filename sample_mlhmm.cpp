@@ -9,18 +9,24 @@ int main(){
 	int states = 3, dim=2;
 	MLHmm H,Hest;	
 	H.resize(states,dim);	
-	Hest.resize(states,dim);
-	
+	Hest.resize(states+3,dim);
+	getchar();
 	H.read_TM("tm_.sample.dat");
 	H.read_Mu("mu.sample.dat");
 	H.read_diag_Sig("sigdiag.sample.dat");
 
-	Hest.read_Mu("mu.sample.dat");
-	Hest.read_diag_Sig("sigdiag.sample.dat");
-	Hest.read_TM("tm.sample.dat");
+	for(int i=0;i<Hest.G.size();i++){
+		Hest.G[i].Mu = MultiGaussSampler(Hest.G[i].hp_m,Hest.G[i].hp_S);
+	}
+	//Hest.read_diag_Sig("sigdiag6.sample.dat");
+	//Hest.read_TM("tm.sample.dat");
 	//cout << H.G[0].Mu<< endl;
 	//cout << H.G[1].Mu<< endl;
+
 	//cout << H.G[2].Mu<< endl;
+	
+	
+	printf("H Hest prepared\n");
 	
 	// Generation of Training Sample dataset
 	vector<int> s  = GenerateStates(H,1000,0);
@@ -32,16 +38,18 @@ int main(){
 	//cout << Y ;
 	Y.write("observation.txt");
 	
+	printf("before filtering\n");
 	// Filtering by true hmm
 	dgematrix F = ForwardFiltering(H,Y);
 	F.write("ff.txt");
 	dgematrix B = BackwardFiltering(H,Y);
 	B.write("bf.txt");
 	
+	printf("after filtering\n");
 	//getchar();
 	
 	//Estimation of hmm
-	int TRIAL = 10;
+	int TRIAL = 100;
 	dcovector likely_log(TRIAL);
 	
 	for (int i=0; i<TRIAL; i++) {

@@ -16,7 +16,7 @@ int main(int argc, char *argv[]){
 	
 	cout << Hest.beta.l << endl;
 	cout << Hest.beta << endl;
-	getchar();
+
 	cout << "1"<<endl;
 	H.read_TM("tm.sample.dat");
 	H.read_Mu("mu.sample.dat");
@@ -24,10 +24,11 @@ int main(int argc, char *argv[]){
 
 	
 	cout << "2"<<endl;
-
+	
+	cout << "Start generating data set." << endl;
 	
 	// Generation of Training Sample dataset
-	vector<int> s  = GenerateStates(H,1000,0);	
+	vector<int> s  = GenerateStates(H,300,0);	
 	dco(s).write("states.txt");
 	dgematrix Y = GenerateObservations(H,s);	
 	Y.write("observation.txt");
@@ -42,6 +43,10 @@ int main(int argc, char *argv[]){
 	dco(est).write("estimated.txt");
 
 
+	cout << "End" << endl;
+	cout << "Start estimation by using sticky HDP-HMM" << endl;
+	getchar();
+	
 	//Estimation of hmm
 	int TRIAL = 100;
 	dcovector likely_log(TRIAL);
