@@ -86,6 +86,7 @@ public:
 	double hp_alpha;
 };
 
+double loglikelihood(dgematrix F);
 
 
 #define HMMclass NBShdpHmm 

@@ -1,6 +1,6 @@
 #include "nbhmm.h"
 
-
+#define MIN_VAL pow(10.0,-40)
 
 
 void NBHmm::read_TM(const char *filename){
@@ -70,6 +70,7 @@ void NBHmm::resize(int n/*num_states*/,int d/*dim_output*/){
 	
 };
 
+
 // additional column is introduced
 dgematrix ForwardFiltering(NBHmm H, dgematrix X){
 	
@@ -83,10 +84,10 @@ dgematrix ForwardFiltering(NBHmm H, dgematrix X){
 	dcovector current = H.TM() * H.pi;
 	drovector x = rovec_read(X,0);	
 	for (int i=0; i<num; i++) {
-		current(i) = H.G[i].Probability(t(x));
+		current(i) = H.pi(i)*H.G[i].Probability(t(x));
 	}
 	double a = sum(current);
-	if(a<pow(10.0,-20)){a=pow(10.0,-20);}
+	//if(a<pow(10.0,-20)){a=pow(10.0,-20);}
 	
 	current = (1.0/a)*current;
 	log_c_ = log10(1.0/a);//similar to hamahata
@@ -506,7 +507,8 @@ vector<int> BackwardSampling(NBHmm H,dgematrix F){
 void MLHmm::Update_bw(dgematrix Y){
 
 	printf("in Update_bw\n");
-	TM();
+	//cout << TM();
+	//getchar();
 	
 	int states = G.size();
 	int dim = Y.n;
@@ -516,15 +518,15 @@ void MLHmm::Update_bw(dgematrix Y){
 	// http://ibisforest.org/index.php?Baum-Welch%E3%82%A2%E3%83%AB%E3%82%B4%E3%83%AA%E3%82%BA%E3%83%A0
 	// minus 1 
 	
-	dgematrix A(T,states);
-	dgematrix B(T,states);
+	dgematrix A(T,states);//forward probability
+	dgematrix B(T,states);//backward probability
 	dcovector C(T);
 	dcovector current(states);
 	
 	
 	printf("start calculating alpha\n");
 	//alphaの計算	
-	cout << pi ;
+	//cout << pi ;
 	printf("this is pi\n");
 	drovector x = rovec_read(Y,0);
 	for (int i=0; i<states; i++) {
@@ -547,42 +549,41 @@ void MLHmm::Update_bw(dgematrix Y){
 		}
 		//cout << CPPL::t(current);
 		//getchar();
-	//	printf("%d ", t);
+
 		double a = sum(current);
-		//if(a<pow(10.0,-20)){a = pow(10.0,-20);}
-		//current = (1.0/a)*current;
-		//C(t)= 1.0/a;
+		current = (1.0/a)*current;
+		C(t)= 1.0/a;
 		vec_set(A,t,CPPL::t(current));
 		//cout << "Scaled "<< CPPL::t(current);
-		//getchar();
-
+		
 	}
 	//cout << A ;
 	//printf("this is Forward");
 	//getchar();
-	//printf("start calculating beta\n");
-	
+
 	//betaの計算
 	all_set(current,1);
-	//current = C(T-1)*current;
 	
 	vec_set(B,T-1,CPPL::t(current));
 	
 	for(int t=T-2;t>-1;t--){
 		x = rovec_read(Y,t+1);
+		//cout << x << endl;
 		for (int j=0; j<states; j++) {
 			current(j)=current(j)*G[j].Probability(CPPL::t(x));
 		}
+		
 		current = CPPL::t(TM_buffer)*current;
-		current = C(t)*current;
+		
+		current = C(t+1)*current;
 		vec_set(B,t,CPPL::t(current));
 	}
 	
-	//cout << B ;
-	//printf("this is Backward");
-	//getchar();
-	
-	cout <<"before for loop" <<endl;
+	/*cout << B ;
+	printf("this is Backward");
+	getchar();
+	*/
+	//cout <<"before for loop" <<endl;
 	
 	vector<dgematrix> eta;
 	eta.resize(Y.m);
@@ -593,6 +594,7 @@ void MLHmm::Update_bw(dgematrix Y){
 		for (int j=0; j<states; j++) {
 			for (int t=0; t<Y.m-1; t++) {				
 				eta[t](i,j)= A(t,i)*TM_buffer(j,i)*G[j].Probability(CPPL::t(rovec_read(Y,t+1)))*B(t+1,j);
+				eta[t](i,j)= C(t+1)*eta[t](i,j);
 			}
 		}		
 	}
@@ -611,32 +613,48 @@ void MLHmm::Update_bw(dgematrix Y){
 	
 	
 	dgematrix gamma(Y.m-1,states);gamma.zero();
+	/*
 	for (int t=0; t<Y.m-1; t++) {
 		for(int i=0;i<states;i++){
 			for (int j=0; j<states; j++) {
 				gamma(t,i) += eta[t](i,j);
 			}
 		}
-	}
-	
-	dgematrix trans_(states,states);
-	for(int i=0;i<states;i++){
-		for (int j=0; j<states; j++) {
-			double up=0;double down=0;
-			for (int t=0; t<Y.m; t++) {
-				up += eta[t](i,j);
-				down += gamma(t,i);
-			}
-			//APPROXIMATION!!/
-			//heuristically avoiding ZERO division 
-			down += DIR_MIN;
-			///
-			trans_(j,i) = up/down;	
-			M[i].Mu(j) = up/down;
+	}*/
+	for(int t=0; t< Y.m -1; t++){
+		for (int i=0; i<states; i++) {
+			gamma(t,i) = A(t,i)*B(t,i);
 		}
 	}
 	
-		
+	
+	//Update transition matrix
+	printf("TM estimation\n");
+	dgematrix sum_eta(states, states);sum_eta.zero();
+	dcovector sum_eta_sum(states);sum_eta_sum.zero();
+	dgematrix trans_(states,states);
+	for(int i=0;i<states;i++){
+		for (int j=0; j<states; j++) {
+			for (int t=0; t<Y.m-1; t++) {
+				sum_eta(i,j) += eta[t](i,j);
+			}
+		}
+	}
+	for (int i=0; i<states; i++) {
+		for (int j=0; j<states; j++) {
+			sum_eta_sum(i) += sum_eta(i,j);
+		}
+	}
+	
+	for (int i=0; i<states; i++) {
+		for (int j=0; j<states; j++) {
+			double p = (sum_eta(i,j) + MIN_VAL/double(states))  / (sum_eta_sum(i) +MIN_VAL  );
+			trans_(j,i) = p;
+			M[i].Mu(j) = p;
+		}
+	}
+
+	
 	printf("Mu estimation\n");
 	// Mu estimation
 	for (int i=0; i<states; i++) {
@@ -682,10 +700,19 @@ void MLHmm::Update_bw(dgematrix Y){
 	A.write("A.dat");
 	B.write("B.dat");
 	C.write("C.dat");
-		
+	TM().write("TM.dat");
+	double logl=0;
+	for (int t=0; t<T; t++) {
+		logl += log10(C(t));
+	}
+	printf("log likelihood = %f\n", logl);
 }
 
 
-
+double loglikelihood(dgematrix F){
+	
+	return sum_to_dro(F)(F.n-1);
+	
+}
 
 
