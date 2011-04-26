@@ -18,6 +18,7 @@ int main(){
 	for(int i=0;i<Hest.G.size();i++){
 		Hest.G[i].Mu = MultiGaussSampler(Hest.G[i].hp_m,Hest.G[i].hp_S);
 	}
+	
 	//Hest.read_diag_Sig("sigdiag6.sample.dat");
 	//Hest.read_TM("tm.sample.dat");
 	//cout << H.G[0].Mu<< endl;
@@ -61,8 +62,8 @@ int main(){
 		//getchar();
 		//cout << Hest.TM();
 		//getchar();
-		F = ForwardFiltering(Hest,Y);
-		F.write("ffest.txt");
+		//F = ForwardFiltering(Hest,Y);
+		//F.write("ffest.txt");
 	/*	for (int t=0; t<F.m; t++) {
 			double test=0;
 			for (int j=0; j<F.n-1; j++) {
@@ -72,8 +73,8 @@ int main(){
 		}
 		getchar();
 	*/	
-		B = BackwardFiltering(Hest,Y);
-		B.write("bfest.txt");
+		//B = BackwardFiltering(Hest,Y);
+		//B.write("bfest.txt");
 		
 		
 	/*	for (int t=0; t<B.m; t++) {
@@ -87,7 +88,7 @@ int main(){
 	*/	
 		
 		//cout << "Updating" <<endl;
-		Hest.Update_bw(Y,F,B);
+		Hest.Update_bw(Y);
 		
 		//cout << F(F.m-1,Hest.G.size())<<endl;
 		//likely_log(i)=F(F.m-1,Hest.G.size());

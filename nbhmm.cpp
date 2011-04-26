@@ -51,6 +51,8 @@ dgematrix NBHmm::TM(){
 
 void NBHmm::resize(int n/*num_states*/,int d/*dim_output*/){
 	//Gaussian
+	
+	printf("NBHmm resize\n");
 	G.resize(n);
 	for (int i=0; i<n ; i++) {
 		G[i].resize(d);
@@ -62,6 +64,9 @@ void NBHmm::resize(int n/*num_states*/,int d/*dim_output*/){
 	}
 	pi.resize(n);
 	all_set(pi,1.0/double(n));
+	
+	cout << pi << endl;
+	
 	
 };
 
@@ -81,7 +86,7 @@ dgematrix ForwardFiltering(NBHmm H, dgematrix X){
 		current(i) = H.G[i].Probability(t(x));
 	}
 	double a = sum(current);
-	if(a<pow(10.0,-20)){a<pow(10.0,-20);}
+	if(a<pow(10.0,-20)){a=pow(10.0,-20);}
 	
 	current = (1.0/a)*current;
 	log_c_ = log10(1.0/a);//similar to hamahata
@@ -227,6 +232,8 @@ dgematrix BackwardFiltering(NBHmm H, dgematrix X){
 
 
 void NBShdpHmm::resize(int n/*num_max_states*/, int d/*dim_output*/){
+	
+	printf("NBShdpHmm resize\n");
 	
 	beta.resize(n);
 	all_set(beta,1.0/double(n));
@@ -495,15 +502,85 @@ vector<int> BackwardSampling(NBHmm H,dgematrix F){
 	
 	return est;
 }
-/*
-void Update_bw(dgematrix Y){
-	dgematrix A(
+
+void MLHmm::Update_bw(dgematrix Y){
+
+	printf("in Update_bw\n");
+	TM();
+	
+	int states = G.size();
+	int dim = Y.n;
+	int T = Y.m;
+	
+	// time index is based on 
+	// http://ibisforest.org/index.php?Baum-Welch%E3%82%A2%E3%83%AB%E3%82%B4%E3%83%AA%E3%82%BA%E3%83%A0
+	// minus 1 
+	
+	dgematrix A(T,states);
+	dgematrix B(T,states);
+	dcovector C(T);
+	dcovector current(states);
 	
 	
-	//alphaの計算
+	printf("start calculating alpha\n");
+	//alphaの計算	
+	cout << pi ;
+	printf("this is pi\n");
+	drovector x = rovec_read(Y,0);
+	for (int i=0; i<states; i++) {
+		current(i) = pi(i)*G[i].Probability(CPPL::t(x));
+	}
+		
+	double a = sum(current);
+	if(a<pow(10.0,-20)){a = pow(10.0,-20);}
+	current = (1.0/a)*current;
+	C(0) = 1.0/a;
 	
+	vec_set(A,0,t(current));
+	
+	
+	for(int t=1;t<T;t++){
+		current = TM_buffer* current;
+		x = rovec_read(Y,t);
+		for (int i=0; i<states; i++) {
+			current(i) = G[i].Probability(CPPL::t(x))*current(i);
+		}
+		//cout << CPPL::t(current);
+		//getchar();
+	//	printf("%d ", t);
+		double a = sum(current);
+		//if(a<pow(10.0,-20)){a = pow(10.0,-20);}
+		//current = (1.0/a)*current;
+		//C(t)= 1.0/a;
+		vec_set(A,t,CPPL::t(current));
+		//cout << "Scaled "<< CPPL::t(current);
+		//getchar();
+
+	}
+	//cout << A ;
+	//printf("this is Forward");
+	//getchar();
+	//printf("start calculating beta\n");
 	
 	//betaの計算
+	all_set(current,1);
+	//current = C(T-1)*current;
+	
+	vec_set(B,T-1,CPPL::t(current));
+	
+	for(int t=T-2;t>-1;t--){
+		x = rovec_read(Y,t+1);
+		for (int j=0; j<states; j++) {
+			current(j)=current(j)*G[j].Probability(CPPL::t(x));
+		}
+		current = CPPL::t(TM_buffer)*current;
+		current = C(t)*current;
+		vec_set(B,t,CPPL::t(current));
+	}
+	
+	//cout << B ;
+	//printf("this is Backward");
+	//getchar();
 	
 	cout <<"before for loop" <<endl;
 	
@@ -514,33 +591,31 @@ void Update_bw(dgematrix Y){
 	}
 	for (int i=0; i<states; i++) {
 		for (int j=0; j<states; j++) {
-			dcovector upvec(states); upvec.zero();// = 0;
-			double up = 0;
-			double down = 0;
-			for (int t=0; t<Y.m-1; t++) {
-				
-				eta[t](i,j)= F(t,i)*TM_buffer(j,i)*G[j].Probability(CPPL::t(rovec_read(Y,t+1)))*B_(t+1,j);
+			for (int t=0; t<Y.m-1; t++) {				
+				eta[t](i,j)= A(t,i)*TM_buffer(j,i)*G[j].Probability(CPPL::t(rovec_read(Y,t+1)))*B(t+1,j);
 			}
 		}		
 	}
 	
 	//Calculating Pr(O|¥lambda)
-	double Pr = 0;
+/*	double Pr = 0;
 	for (int i=0; i<states; i++) {
 		for(int j=0; j<states; j++){
 			Pr += eta[1](i,j);
 		}
 	}
+	
 	for (int t=0; t<Y.m; t++) {
 		eta[t]= (1.0/Pr)*eta[t];
-	}
-	dgematrix gamma(Y.m,states);gamma.zero();
-	for (int t=0; t<Y.m; t++) {
+	}*/
+	
+	
+	dgematrix gamma(Y.m-1,states);gamma.zero();
+	for (int t=0; t<Y.m-1; t++) {
 		for(int i=0;i<states;i++){
 			for (int j=0; j<states; j++) {
 				gamma(t,i) += eta[t](i,j);
 			}
-			
 		}
 	}
 	
@@ -561,34 +636,17 @@ void Update_bw(dgematrix Y){
 		}
 	}
 	
-	
-	//	cout << "est transition" << endl;
-	//	cout << trans_ << endl;
-	//	cout << " transition " << (TM());
-	//	cout << "sum transition " << sum_to_dro(TM());
-	
-	for (int i=0; i<states; i++) {
-		cout << "state: "<< i << endl;
-		cout << CPPL::t(G[i].Mu);
-		cout << G[i].Sig;
-		cout << M[i].Mu;
-	}
-	cout << "before " << endl;
-	
+		
 	printf("Mu estimation\n");
 	// Mu estimation
 	for (int i=0; i<states; i++) {
 		dcovector temp(Y.n);temp.zero();
 		double probcount = 0;
-		for(int t=0;t<Y.m;t++){
+		for(int t=0;t<Y.m-1;t++){
 			probcount += gamma(t,i);
 			temp = temp + gamma(t,i)*CPPL::t(rovec_read(Y,t));
 		}
 		G[i].Mu = (1.0/probcount)*temp;
-		if (probcount==0) {
-			cout << "probcount zero! stop! << enter";
-			getchar();
-		}
 	}
 	
 	printf("Sig estimation\n");
@@ -596,7 +654,7 @@ void Update_bw(dgematrix Y){
 	for (int i=0; i<states; i++) {
 		dgematrix temp(Y.n,Y.n);temp.zero();
 		double probcount = 0;
-		for(int t=0;t<Y.m;t++){
+		for(int t=0;t<Y.m-1;t++){
 			
 			probcount += gamma(t,i);
 			drovector tempro = rovec_read(Y,t);
@@ -607,7 +665,7 @@ void Update_bw(dgematrix Y){
 		sI = G[i].Sig;
 		sI.identity();
 		//G[i].Sig = (1.0/(probcount+ G[i].hp_n))*(temp + G[i].hp_A);
-		G[i].Sig = (1.0/probcount)*(temp);
+		G[i].Sig = (1.0/probcount)*(temp + pow(10.0,-40)*sI);//Regulalization
 		
 	}
 	
@@ -621,12 +679,13 @@ void Update_bw(dgematrix Y){
 	
 	cout << " transition " << endl << (TM());
 	
-	
-	
-	
+	A.write("A.dat");
+	B.write("B.dat");
+	C.write("C.dat");
+		
 }
 
-*/
+
 
 
 

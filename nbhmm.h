@@ -38,10 +38,29 @@ dgematrix BackwardFiltering(NBHmm H, dgematrix X);
 
 
 
+class MLHmm : public NBHmm{
+public:
+	//vector<NBGauss> G;//Gaussian distribution
+	//vector<NBMulti> M;// Transition multinomial distribution
+	
+	//void resize(int num_states, int dim_output);
+	//dgematrix TM_buffer; // used to buffering TM for reducing repetedly estimation of TM.
+	//dgematrix TM();// shows transition matrix
+	
+	void Update_bw(dgematrix Y,dgematrix F/*Forward message*/, dgematrix B/*Backword message*/);
+	void Update_bw(dgematrix Y);
+	//void read_Mu(const char *filename);
+	//void read_diag_Sig(const char *filename);
+	
+	//void read_TM(const char *filename);// read TM from file
+};
+
+
+
 
 //forward-backward はそのまま行けるが，
 // Updateについては変更が必要,また，Dirichlet 分布のハイパーパラメータが常時更新される．
-class NBShdpHmm : public NBHmm {
+class NBShdpHmm : public MLHmm{
 public:
 	dcovector beta;//global transition
 	
@@ -68,23 +87,6 @@ public:
 };
 
 
-class MLHmm : public NBShdpHmm{
-public:
-	//vector<NBGauss> G;//Gaussian distribution
-	//vector<NBMulti> M;// Transition multinomial distribution
-	
-	//void resize(int num_states, int dim_output);
-	//dgematrix TM_buffer; // used to buffering TM for reducing repetedly estimation of TM.
-	//dgematrix TM();// shows transition matrix
-	
-	void Update_bw(dgematrix Y,dgematrix F/*Forward message*/, dgematrix B/*Backword message*/);
-	//void Update_bw(dgematrix Y);
-	//void read_Mu(const char *filename);
-	//void read_diag_Sig(const char *filename);
-	
-	//void read_TM(const char *filename);// read TM from file
-};
 
-
-#define HMMclass MLHmm 
+#define HMMclass NBShdpHmm 
 
