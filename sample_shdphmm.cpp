@@ -18,9 +18,9 @@ int main(int argc, char *argv[]){
 	cout << Hest.beta << endl;
 
 	cout << "1"<<endl;
-	H.read_TM("tm.sample.dat");
-	H.read_Mu("mu.sample.dat");
-	H.read_diag_Sig("sigdiag.sample.dat");
+	H.read_TM("sample_dat/tm.sample.dat");
+	H.read_Mu("sample_dat/mu.sample.dat");
+	H.read_diag_Sig("sample_dat/sigdiag.sample.dat");
 
 	
 	cout << "2"<<endl;

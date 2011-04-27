@@ -334,7 +334,7 @@ void NBShdpHmm::Update_shdp(dgematrix Y,vector<int> label){
 	
 }
 
-
+/*
 void MLHmm::Update_bw(dgematrix Y,dgematrix F, dgematrix B){
 	//In Baum-Welch algorithm Forward and Backward filters
 	// have to share the same FF'sscaling parameter 
@@ -414,7 +414,7 @@ void MLHmm::Update_bw(dgematrix Y,dgematrix F, dgematrix B){
 				up += eta[t](i,j);
 				down += gamma(t,i);
 			}
-			/*APPROXIMATION!!*/
+			//APPROXIMATION!!
 			//heuristically avoiding ZERO division 
 			down += DIR_MIN;
 			///
@@ -469,7 +469,7 @@ void MLHmm::Update_bw(dgematrix Y,dgematrix F, dgematrix B){
 		sI = G[i].Sig;
 		sI.identity();
 		//G[i].Sig = (1.0/(probcount+ G[i].hp_n))*(temp + G[i].hp_A);
-		G[i].Sig = (1.0/probcount)*(temp /*+ sI*/);
+		G[i].Sig = (1.0/probcount)*(temp );//+ sI);
 		
 	}
 	
@@ -484,7 +484,7 @@ void MLHmm::Update_bw(dgematrix Y,dgematrix F, dgematrix B){
 	cout << " transition " << endl << (TM());
 	
 	
-}
+}*/
 
 vector<int> BackwardSampling(NBHmm H,dgematrix F){
 	
@@ -507,7 +507,7 @@ vector<int> BackwardSampling(NBHmm H,dgematrix F){
 void MLHmm::Update_bw(dgematrix Y){
 
 	printf("in Update_bw\n");
-	//cout << TM();
+	cout << TM();
 	//getchar();
 	
 	int states = G.size();
@@ -527,9 +527,10 @@ void MLHmm::Update_bw(dgematrix Y){
 	printf("start calculating alpha\n");
 	//alphaの計算	
 	//cout << pi ;
-	printf("this is pi\n");
+	//printf("this is pi\n");
 	drovector x = rovec_read(Y,0);
 	for (int i=0; i<states; i++) {
+	//	printf("current %d\n",i);
 		current(i) = pi(i)*G[i].Probability(CPPL::t(x));
 	}
 		
@@ -538,18 +539,24 @@ void MLHmm::Update_bw(dgematrix Y){
 	current = (1.0/a)*current;
 	C(0) = 1.0/a;
 	
+	//printf("initial vecset\n");
 	vec_set(A,0,t(current));
 	
 	
 	for(int t=1;t<T;t++){
+		//printf("for loop %d,,,\n",t);
 		current = TM_buffer* current;
+		//printf("TM_buffered\n");
 		x = rovec_read(Y,t);
+		
 		for (int i=0; i<states; i++) {
+		//	printf("--%d, %d-th",t,i);
 			current(i) = G[i].Probability(CPPL::t(x))*current(i);
 		}
 		//cout << CPPL::t(current);
 		//getchar();
 
+		//printf("to sum\n");
 		double a = sum(current);
 		current = (1.0/a)*current;
 		C(t)= 1.0/a;
@@ -697,15 +704,15 @@ void MLHmm::Update_bw(dgematrix Y){
 	
 	cout << " transition " << endl << (TM());
 	
-	A.write("A.dat");
+/*	A.write("A.dat");
 	B.write("B.dat");
 	C.write("C.dat");
 	TM().write("TM.dat");
 	double logl=0;
 	for (int t=0; t<T; t++) {
 		logl += log10(C(t));
-	}
-	printf("log likelihood = %f\n", logl);
+
+	printf("log likelihood = %f\n", logl);*/
 }
 
 

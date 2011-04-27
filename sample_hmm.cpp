@@ -10,9 +10,9 @@ int main(int argc, char *argv[]){
 	H.resize(states,dim);	
 	Hest.resize(big_sates/*states*/,dim);
 	
-	H.read_TM("tm.sample.dat");
-	H.read_Mu("mu.sample.dat");
-	H.read_diag_Sig("sigdiag.sample.dat");
+	H.read_TM("sample_dat/tm.sample.dat");
+	H.read_Mu("sample_dat/mu.sample.dat");
+	H.read_diag_Sig("sample_dat/sigdiag.sample.dat");
 	
 	cout << H.G[0].Mu<< endl;
 	cout << H.G[1].Mu<< endl;

@@ -47,7 +47,7 @@ public:
 	//dgematrix TM_buffer; // used to buffering TM for reducing repetedly estimation of TM.
 	//dgematrix TM();// shows transition matrix
 	
-	void Update_bw(dgematrix Y,dgematrix F/*Forward message*/, dgematrix B/*Backword message*/);
+	//void Update_bw(dgematrix Y,dgematrix F/*Forward message*/, dgematrix B/*Backword message*/);
 	void Update_bw(dgematrix Y);
 	//void read_Mu(const char *filename);
 	//void read_diag_Sig(const char *filename);

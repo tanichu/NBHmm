@@ -14,6 +14,12 @@ This program requires
   please refer cpplapack_plus
 
 
+*sample_dat/
+ dat files used in sample codes.
+ Usually, *.dat is input files and *.txt are output files.
+
+
+
 
 g++ -c hogehoge.cpp nbhmm.cpp
 g++ -c cpplapack_plus.cpp
