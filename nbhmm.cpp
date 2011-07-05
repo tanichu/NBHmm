@@ -161,13 +161,16 @@ void NBHmm::Update(dgematrix Y, vector<int> label){
 
 vector<int> ForwardSampling(NBHmm H,dgematrix B, dgematrix X){
 	
-	
-	vector<int> est;est.resize(B.m);
-	
+	vector<int> est;
+	est.resize(B.m);
 	dcovector current = subvector(t(rovec_read(B,0)),B.n-1);
 	est[0] = MultiNominalSampler(current);
+#ifdef LR_SHDP_TEST
+	est[0] = 0;
+#endif
 	
 	dcovector f(H.M.size());
+	
 	
 	for (int i=0; i<B.m-1; i++) {
 		for (int k=0; k<B.n-1; k++) {
@@ -252,6 +255,10 @@ void NBShdpHmm::resize(int n/*num_max_states*/, int d/*dim_output*/){
 	for (int i=0; i<n ; i++) {
 		M[i].resize(n);
 	}
+	pi.resize(n);
+	all_set(pi,1.0/double(n));
+	
+	cout << pi << endl;
 	
 	
 }
@@ -334,157 +341,90 @@ void NBShdpHmm::Update_shdp(dgematrix Y,vector<int> label){
 	
 }
 
-/*
-void MLHmm::Update_bw(dgematrix Y,dgematrix F, dgematrix B){
-	//In Baum-Welch algorithm Forward and Backward filters
-	// have to share the same FF'sscaling parameter 
-	TM();
+void NBShdpHmm::Update_shdp_multi(vector<dgematrix> mY,vector<vector<int> > mlabel){
+	int states = M.size();
 	
-	int states = G.size();
+	//Monitoring sampled Transition Count
+	dgematrix TC = TransitionCount(mlabel[0],M.size());
 	
-	dcovector fC(F.m),bC(B.m);//buffer for scaling parameters
-	
-	//Buffering cumulative log forward scaling parameter 
-	fC(F.m-1)=F(F.m-1,states);
-	for(int k =F.m-1; k>0; k--){
-		fC(k-1) = fC(k)+F(k-1,states);
+	for (int i=1; i<mlabel.size(); i++) {
+		TC = TC + TransitionCount(mlabel[i],M.size());
 	}
+	cout << "TC "<< TC << endl;
+	cout << "augment variable m" << endl;
 	
-	//Buffering cumulative log backward scaling parameter
-	bC(B.m-1)=B(B.m-1,states);
-	for(int t=B.m-1; t>0; t--) {
-		bC(t-1) = bC(t)+B(t-1,states);
-	}
-	
-	
-	//Preparing B_
-	//b/pow(10.0,bC(t)) が真のb これに pow(10.0,fC(t))をかけると
-	//Ffでスケーリングしたb'
-	dgematrix B_(B.m,states);
-	for(int t=0;t<B.m;t++){
-		for (int i=0; i<states; i++) {
-			B_(t,i)=B(t,i)*pow(10.0,fC(t)-bC(t));
-		}
-	}
-	
-	cout <<"before for loop" <<endl;
-	
-	vector<dgematrix> eta;
-	eta.resize(Y.m);
-	for (int t=0; t<Y.m;t++) {
-		eta[t].resize(states,states);
-	}
-	for (int i=0; i<states; i++) {
-		for (int j=0; j<states; j++) {
-			dcovector upvec(states); upvec.zero();// = 0;
-			double up = 0;
-			double down = 0;
-			for (int t=0; t<Y.m-1; t++) {
-				
-				eta[t](i,j)= F(t,i)*TM_buffer(j,i)*G[j].Probability(CPPL::t(rovec_read(Y,t+1)))*B_(t+1,j);
+	//augment variable m
+	dgematrix m(states,states);
+	for (int j=0; j<states; j++) {
+		for (int k=0; k<states; k++) {
+			int n=0;
+			for (int l=0; l<TC(k,j); l++) {
+				//cout << "beta" << beta << endl;
+				double p = (hp_alpha*beta(k)+hp_kappa*Kronecker_delta(j,k))/(n+hp_alpha*beta(k)+hp_kappa*Kronecker_delta(j,k));
+				m(k,j) += BernoulliSampler(p);
+				n++;
 			}
-		}		
+		}
 	}
 	
-	//Calculating Pr(O|¥lambda)
-	double Pr = 0;
+	cout << "overide variable w " << endl;
+	dcovector w(states);// overide variable
+	for (int j=0; j<states; j++) {
+		w(j) = BinominalSampler(m(j,j),hp_rho()/(hp_rho()+beta(j)*hp_rho()));
+	}
+	
+	cout << "m_" << endl;
+	dgematrix m_(states,states);
+	for(int j=0;j<states;j++){
+		for (int k=0; k<states; k++) {
+			m_(k,j) = m(k,j) - w(j)*Kronecker_delta(j,k);
+	//		cout << j << " "<< k << endl;
+		}
+	}
+	
+	cout << "beta_prior" << endl;
+	
+	dcovector beta_prior(states);
+	dcovector m_sum = sum_to_dco(m_);
 	for (int i=0; i<states; i++) {
-		for(int j=0; j<states; j++){
-			Pr += eta[1](i,j);
-		}
-	}
-	for (int t=0; t<Y.m; t++) {
-		eta[t]= (1.0/Pr)*eta[t];
-	}
-	dgematrix gamma(Y.m,states);gamma.zero();
-	for (int t=0; t<Y.m; t++) {
-		for(int i=0;i<states;i++){
-			for (int j=0; j<states; j++) {
-				gamma(t,i) += eta[t](i,j);
-			}
-			
-		}
+		beta_prior(i) = hp_gamma/states + m_sum(i);
 	}
 	
-	dgematrix trans_(states,states);
-	for(int i=0;i<states;i++){
-		for (int j=0; j<states; j++) {
-			double up=0;double down=0;
-			for (int t=0; t<Y.m; t++) {
-				up += eta[t](i,j);
-				down += gamma(t,i);
-			}
-			//APPROXIMATION!!
-			//heuristically avoiding ZERO division 
-			down += DIR_MIN;
-			///
-			trans_(j,i) = up/down;	
-			M[i].Mu(j) = up/down;
+	//cout << "for lower bound of beta element (heuristics )" << endl;
+	for (int i=0; i < beta.l; i++) {
+	//	cout << "inside beta" << endl;
+		if (beta(i)<DIR_MIN) {
+			beta(i)=DIR_MIN;
+			cout << "dir lower cut!!"<< endl;
+			//getchar();
 		}
 	}
-	
-	
-	//	cout << "est transition" << endl;
-	//	cout << trans_ << endl;
-	//	cout << " transition " << (TM());
-	//	cout << "sum transition " << sum_to_dro(TM());
+	//cout << "test" << endl;
+	//getchar();
+	beta = DirichletSampler(beta_prior);	
 	
 	for (int i=0; i<states; i++) {
-		cout << "state: "<< i << endl;
-		cout << CPPL::t(G[i].Mu);
-		cout << G[i].Sig;
-		cout << M[i].Mu;
-	}
-	cout << "before " << endl;
-	
-	printf("Mu estimation\n");
-	// Mu estimation
-	for (int i=0; i<states; i++) {
-		dcovector temp(Y.n);temp.zero();
-		double probcount = 0;
-		for(int t=0;t<Y.m;t++){
-			probcount += gamma(t,i);
-			temp = temp + gamma(t,i)*CPPL::t(rovec_read(Y,t));
+		//cout << i <<"-th module" << endl;
+		//update Gaussians
+		//cout << "ud gaussian "<<endl;
+		dgematrix Yi = ExtractMatrixByIndex(mY[0],mlabel[0],i);
+		for (int j=1;j<mlabel.size(); j++) {
+			//cout <<" mlabel "<< j << endl; 
+			Yi = put_on(Yi,ExtractMatrixByIndex(mY[j],mlabel[j],i));
 		}
-		G[i].Mu = (1.0/probcount)*temp;
-		if (probcount==0) {
-			cout << "probcount zero! stop! << enter";
-			getchar();
-		}
+		//cout << Yi << endl;
+		G[i].UpdateMu(Yi);
+		G[i].UpdateSig(Yi);
+		//update Transition
+		//cout << "ud transition"  <<endl;
+		M[i].hp_alpha = hp_alpha*beta;
+		M[i].hp_alpha(i) += hp_kappa;
+		M[i].UpdateMu(covec_read(TC,i));
 	}
-	
-	printf("Sig estimation\n");
-	// Sig estimation
-	for (int i=0; i<states; i++) {
-		dgematrix temp(Y.n,Y.n);temp.zero();
-		double probcount = 0;
-		for(int t=0;t<Y.m;t++){
-			
-			probcount += gamma(t,i);
-			drovector tempro = rovec_read(Y,t);
-			tempro = tempro - CPPL::t(G[i].Mu);
-			temp = temp + gamma(t,i)*(CPPL::t(tempro)* tempro) ;
-		}
-		dgematrix sI;
-		sI = G[i].Sig;
-		sI.identity();
-		//G[i].Sig = (1.0/(probcount+ G[i].hp_n))*(temp + G[i].hp_A);
-		G[i].Sig = (1.0/probcount)*(temp );//+ sI);
-		
-	}
-	
-	printf("Update log show\n");
-	// Update log show
-	for (int i=0; i<states; i++) {
-		cout << "state: "<< i << endl;
-		cout << CPPL::t(G[i].Mu);
-		cout << G[i].Sig;
-	}
-	
-	cout << " transition " << endl << (TM());
-	
-	
-}*/
+	cout << "update done" << endl;
+}
+
+
 
 vector<int> BackwardSampling(NBHmm H,dgematrix F){
 	
@@ -526,8 +466,8 @@ void MLHmm::Update_bw(dgematrix Y){
 	
 	printf("start calculating alpha\n");
 	//alphaの計算	
-	//cout << pi ;
-	//printf("this is pi\n");
+	cout << pi ;
+	printf("this is pi\n");
 	drovector x = rovec_read(Y,0);
 	for (int i=0; i<states; i++) {
 	//	printf("current %d\n",i);
@@ -544,19 +484,19 @@ void MLHmm::Update_bw(dgematrix Y){
 	
 	
 	for(int t=1;t<T;t++){
-		//printf("for loop %d,,,\n",t);
+	//	printf("for loop %d,,,\n",t);
 		current = TM_buffer* current;
-		//printf("TM_buffered\n");
+	//	printf("TM_buffered\n");
 		x = rovec_read(Y,t);
 		
 		for (int i=0; i<states; i++) {
-		//	printf("--%d, %d-th",t,i);
+	//		printf("--%d, %d-th",t,i);
 			current(i) = G[i].Probability(CPPL::t(x))*current(i);
 		}
-		//cout << CPPL::t(current);
+	//	cout << CPPL::t(current);
 		//getchar();
 
-		//printf("to sum\n");
+	//	printf("to sum\n");
 		double a = sum(current);
 		current = (1.0/a)*current;
 		C(t)= 1.0/a;
@@ -691,6 +631,7 @@ void MLHmm::Update_bw(dgematrix Y){
 		sI.identity();
 		//G[i].Sig = (1.0/(probcount+ G[i].hp_n))*(temp + G[i].hp_A);
 		G[i].Sig = (1.0/probcount)*(temp + pow(10.0,-40)*sI);//Regulalization
+		G[i].iSig = CPPL::i(G[i].Sig);
 		
 	}
 	

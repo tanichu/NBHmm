@@ -1,7 +1,7 @@
 #include "../cpplapack_plus/cpplapack_plus.h"
 
 
-
+#define LR_SHDP_TEST
 
 //NBHmm  Forwardfiltering - Backward sampling のBayseHMM
 class NBHmm  {
@@ -73,7 +73,7 @@ public:
 	
 	
 	void Update_shdp(dgematrix Y,vector<int> label);
-	
+	void Update_shdp_multi(vector< dgematrix > mY,vector< vector<int> > mlabel);
 	//use	void read_Mu(const char *filename);
 	//use	void read_diag_Sig(const char *filename);
 	//use	void read_TM(const char *filename);// read TM from file

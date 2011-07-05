@@ -7,7 +7,7 @@ int main(){
 
 	
 	int states = 3, dim=2;
-	MLHmm H,Hest;	
+	HMMclass H,Hest;	
 	H.resize(states,dim);	
 	Hest.resize(states,dim);
 	
